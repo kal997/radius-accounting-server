@@ -101,7 +101,6 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("redis host cannot be empty")
 	}
 
-
 	if c.recordTTL <= 0 {
 		return fmt.Errorf("record TTL must be greater than 0")
 	}
