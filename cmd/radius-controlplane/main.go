@@ -19,10 +19,15 @@ import (
 
 func main() {
 
-	// Force load and overwrite existing env vars
-	if err := godotenv.Overload(); err != nil { // Use Overload instead of Load
-		log.Printf("Warning: Error loading .env file: %v", err)
+	if value, ok := os.LookupEnv("ENV"); ok && value == "prod" {
+		// In Docker/Compose, rely only on provided env vars
+	} else {
+		// Local dev: force load .env
+		if err := godotenv.Overload(); err != nil {
+			log.Fatalf("Could not load .env: %v", err)
+		}
 	}
+
 	// Load configuration into config
 	cfg, err := config.LoadFromEnv()
 	if err != nil {

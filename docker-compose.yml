@@ -1,0 +1,44 @@
+version: "3.9"
+
+services:
+  controlplane:
+    build:
+      context: .
+      dockerfile: cmd/radius-controlplane/Dockerfile
+    container_name: radius-controlplane
+    env_file:
+      - .env   
+    environment:
+      - ENV=prod
+    ports:
+      - "1813:1813/udp"
+    depends_on:
+      - redis
+
+  logger:
+    build:
+      context: .
+      dockerfile: cmd/radius-controlplane-logger/Dockerfile
+    container_name: radius-controlplane-logger
+    env_file:
+      - .env
+    environment:
+      - ENV=prod
+      - LOG_FILE=${LOG_FILE_CONTAINER}  
+    volumes:
+    - ${LOG_FILE}:${LOG_FILE_CONTAINER}  
+    depends_on:
+      - redis
+      - controlplane
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: ["redis-server", "--notify-keyspace-events", "KEA"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
