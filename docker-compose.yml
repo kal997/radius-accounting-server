@@ -14,7 +14,8 @@ services:
       - "1813:1813/udp"
     depends_on:
       - redis
-
+    networks:
+      - radius-net
   logger:
     build:
       context: .
@@ -30,6 +31,8 @@ services:
     depends_on:
       - redis
       - controlplane
+    networks:
+      - radius-net
 
   redis:
     image: redis:7-alpine
@@ -39,6 +42,26 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
-
+    networks:
+      - radius-net
+  radclient-test:
+    build:
+      context: .
+      dockerfile: cmd/radclient-test/Dockerfile
+    container_name: radclient-test
+    environment:
+      - RADIUS_SERVER=radius-controlplane
+      - RADIUS_SHARED_SECRET=${RADIUS_SHARED_SECRET}
+    volumes:
+      - ./examples:/requests 
+    depends_on:
+      - controlplane
+    networks:
+      - radius-net
 volumes:
   redis-data:
+
+networks:
+  radius-net:
+    name: radius-network
+    driver: bridge
