@@ -4,11 +4,15 @@ import (
 	"context"
 	"log"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
-	"github.com/joho/godotenv"
 	"github.com/kal997/radius-accounting-system/internal/config"
 	"github.com/kal997/radius-accounting-system/internal/models"
 	"github.com/kal997/radius-accounting-system/internal/storage"
+
+	"github.com/joho/godotenv"
 
 	"layeh.com/radius"
 )
@@ -44,18 +48,45 @@ func main() {
 	log.Printf("Starting RADIUS accounting server on %s", cfg.GetRADIUSAddr())
 	log.Printf("Connected to Redis at %s", cfg.GetRedisAddr())
 
+	// Create context for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Handle shutdown signals
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		<-sigChan
+		log.Println("Received shutdown signal, stopping RADIUS server...")
+		cancel()
+	}()
+
 	// Start RADIUS server
 	server := radius.PacketServer{
 		Handler:      radius.HandlerFunc(handleAccounting(store)),
 		SecretSource: radius.StaticSecretSource([]byte(cfg.GetSharedSecret())),
-		Addr:         cfg.GetRADIUSAddr(), // ":1813" for accounting
+		Addr:         cfg.GetRADIUSAddr(),
 		Network:      "udp",
 	}
 
-	if err := server.ListenAndServe(); err != nil {
-		log.Fatalf("RADIUS server failed: %v", err)
+	// Start server in goroutine
+	serverErr := make(chan error, 1)
+	go func() {
+		serverErr <- server.ListenAndServe()
+	}()
+
+	// Wait for shutdown signal or server error
+	select {
+	case <-ctx.Done():
+		log.Println("Shutting down...")
+	case err := <-serverErr:
+		if err != nil {
+			log.Fatalf("RADIUS server failed: %v", err)
+		}
 	}
 }
+
 func handleAccounting(store storage.Storage) func(w radius.ResponseWriter, r *radius.Request) {
 	return func(w radius.ResponseWriter, r *radius.Request) {
 
