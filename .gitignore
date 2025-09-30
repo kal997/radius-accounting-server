@@ -1,3 +1,4 @@
 .vscode/*
 .env
 radius_accounting.log
+coverage.out
