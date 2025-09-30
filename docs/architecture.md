@@ -241,7 +241,7 @@ All containers communicate via a custom bridge network (`radius-network`). Redis
 **Decision**: Use generic interfaces instead of Redis-specific APIs
 
 **Rationale:**
-- **Flexibility**: Easy to change storage backends (PostgreSQL, MongoDB, ClickHouse)
+- **Flexibility**: Easy to change storage backends (PostgreSQL, MongoDB)
 - **Testability**: Mock interfaces for unit testing without Redis
 - **Maintenance**: Easier to update implementations independently
 - **Reusability**: Interfaces can be used in other projects
@@ -284,17 +284,6 @@ All containers communicate via a custom bridge network (`radius-network`). Redis
 
 **Trade-off**: Additional service complexity vs. better modularity
 
-### 5. Timestamp in Redis Keys
-
-**Decision**: Include RFC3339Nano timestamp in Redis keys
-
-**Rationale:**
-- **Uniqueness**: Prevents key collisions for same user/session
-- **Temporal Ordering**: Keys naturally sort by time
-- **Debugging**: Timestamp visible in key without retrieving value
-- **TTL Tracking**: Easy to see when records will expire
-
-**Trade-off**: Longer key names vs. better debugging and ordering
 
 ## Technical Considerations
 
@@ -352,5 +341,3 @@ The interface-based architecture makes it straightforward to extend the system w
 - PostgreSQL storage backend implementation
 - Message queue integration (Kafka/RabbitMQ)
 - Distributed tracing with OpenTelemetry
-
-See the v2 requirements specification for detailed roadmap.

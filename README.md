@@ -38,19 +38,7 @@ This system implements a complete RADIUS accounting solution following RFC 2866,
 
 ## Architecture
 
-```
-┌─────────────────┐     ┌────────────────────┐     ┌──────────────────┐
-│  radclient-test │────▶│radius-controlplane │────▶│     Redis        │
-│ (UDP packets)   │     │   (Port 1813)      │     │  (Storage +      │ 
-└─────────────────┘     └────────────────────┘     │   Pub/Sub)       │
-                                                   └───────┬──────────┘
-                                                           │
-                                                           ▼
-                                                  ┌─────────────────┐
-                                                  │ redis-logger    │
-                                                  │ (Event logging) │
-                                                  └─────────────────┘
-```
+![High-Level Architecture](./docs/diagrams/architecture.png)
 
 For detailed architecture diagrams, see [docs/architecture.md](docs/architecture.md).
 
@@ -319,26 +307,8 @@ The notification system uses Go channels for event distribution, providing natur
 ### Graceful Shutdown
 Both services handle SIGINT/SIGTERM signals gracefully, ensuring proper cleanup of Redis connections and file handles through context propagation.
 
-## Troubleshooting
-
-### RADIUS Server Not Starting
-- Check port 1813/udp is not in use: `sudo lsof -i :1813`
-- Verify shared secret is at least 8 characters
-- Check Redis connectivity: `docker logs redis`
-
-### No Events in Subscriber Log
-- Verify Redis keyspace notifications are enabled
-- Check subscriber service logs: `docker logs radius-controlplane-logger`
-- Confirm Redis connection: `docker exec redis redis-cli CONFIG GET notify-keyspace-events`
-
-### Packets Not Being Stored
-- Check RADIUS server logs for storage errors
-- Verify Redis is running: `docker exec redis redis-cli PING`
-- Test Redis connection: `docker exec redis redis-cli SET test value`
-
 ## Performance Considerations
 
-- **Concurrent Requests**: The RADIUS server handles multiple concurrent UDP packets
 - **Buffered Channels**: Event channels use 100-item buffers to prevent blocking
 - **Redis TTL**: Automatic expiration prevents unbounded storage growth
 - **File Sync**: Log writes are synced to disk for durability
@@ -353,6 +323,7 @@ Both services handle SIGINT/SIGTERM signals gracefully, ensuring proper cleanup 
 - File-based logging only (no remote logging, but can be extended using logging interface)
 - Limited RADIUS attributes extracted
 - Basic error recovery (no retry logic)
+- Test covarage < 80% (currently 55.2%)
 
 ## References
 
