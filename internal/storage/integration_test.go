@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kal997/radius-accounting-system/internal/config"
-	"github.com/kal997/radius-accounting-system/internal/models"
+	"github.com/kal997/radius-accounting-server/internal/config"
+	"github.com/kal997/radius-accounting-server/internal/models"
 )
 
 // internal/storage/integration_test.go

@@ -9,9 +9,9 @@ import (
 	"syscall"
 
 	"github.com/joho/godotenv"
-	"github.com/kal997/radius-accounting-system/internal/config"
-	"github.com/kal997/radius-accounting-system/internal/logger"
-	"github.com/kal997/radius-accounting-system/internal/notifier"
+	"github.com/kal997/radius-accounting-server/internal/config"
+	"github.com/kal997/radius-accounting-server/internal/logger"
+	"github.com/kal997/radius-accounting-server/internal/notifier"
 )
 
 func main() {

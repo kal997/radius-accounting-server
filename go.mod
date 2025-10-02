@@ -1,4 +1,4 @@
-module github.com/kal997/radius-accounting-system
+module github.com/kal997/radius-accounting-server
 
 go 1.22.2
 
