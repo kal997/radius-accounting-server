@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis_integration
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  tests:
+    image: golang:1.23
+    working_dir: /app
+    volumes:
+      - .:/app
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      # Config required by config.LoadFromEnv
+      RADIUS_SHARED_SECRET: "integrationsecret"
+      REDIS_HOST: "redis"
+      RECORD_TTL_HOURS: "1"
+      LOG_LEVEL: "debug"
+      LOG_FILE: "/tmp/test.log"
+    command: >
+      sh -c "go test -tags=integration ./test/... -v"
