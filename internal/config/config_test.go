@@ -32,6 +32,29 @@ func TestLoadFromEnv_ValidConfig(t *testing.T) {
 	assert.Equal(t, "/var/log/test.log", cfg.GetLogFile())
 }
 
+func TestLoadFromEnv_ValidConfig_test_setup(t *testing.T) {
+	// Clean environment
+	clearEnv()
+	defer clearEnv()
+
+	// Set valid environment variables
+	os.Setenv("RADIUS_SHARED_SECRET", "secretkey123")
+	os.Setenv("REDIS_HOST", "localhost")
+	os.Setenv("RECORD_TTL_HOURS", "24")
+	os.Setenv("LOG_LEVEL", "info")
+	os.Setenv("REDIS_PORT", "1111")
+	os.Setenv("LOG_FILE", "/var/log/test.log")
+
+	cfg, err := LoadFromEnv()
+
+	require.NoError(t, err)
+	assert.Equal(t, ":1813", cfg.GetRADIUSAddr())
+	assert.Equal(t, "secretkey123", cfg.GetSharedSecret())
+	assert.Equal(t, "localhost:1111", cfg.GetRedisAddr())
+	assert.Equal(t, 24*time.Hour, cfg.GetRecordTTL())
+	assert.Equal(t, LogLevelInfo, cfg.GetLogLevel())
+	assert.Equal(t, "/var/log/test.log", cfg.GetLogFile())
+}
 func TestLoadFromEnv_MissingRequired(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -95,6 +118,18 @@ func TestLoadFromEnv_MissingRequired(t *testing.T) {
 				"LOG_LEVEL":            "info",
 			},
 			wantErr: "LOG_FILE environment variable is required",
+		},
+		{
+			name: "invalid REDIS_PORT",
+			envVars: map[string]string{
+				"RADIUS_SHARED_SECRET": "secret123",
+				"REDIS_HOST":           "localhost",
+				"RECORD_TTL_HOURS":     "24",
+				"LOG_LEVEL":            "info",
+				"LOG_FILE":             "/var/log/test.log",
+				"REDIS_PORT":           "invalid",
+			},
+			wantErr: "invalid REDIS_ADDR: strconv.Atoi: parsing \"invalid\": invalid syntax",
 		},
 	}
 
@@ -353,7 +388,7 @@ func TestIsValidLogLevel(t *testing.T) {
 func clearEnv() {
 	envVars := []string{
 		"RADIUS_SHARED_SECRET", "REDIS_HOST", "RECORD_TTL_HOURS",
-		"LOG_LEVEL", "LOG_FILE",
+		"LOG_LEVEL", "LOG_FILE", "REDIS_PORT",
 	}
 	for _, env := range envVars {
 		os.Unsetenv(env)
