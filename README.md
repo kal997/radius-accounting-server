@@ -247,7 +247,7 @@ radclient -x localhost:1813 acct testing123 < examples/acct_start.txt
 
 ### Running Tests
 
-The project includes comprehensive unit and integration tests with >80% code coverage.
+The project includes comprehensive unit and integration tests, currently less than 80% code coverage.
 
 **Quick test commands via run.sh:**
 
@@ -320,7 +320,6 @@ Both services handle SIGINT/SIGTERM signals gracefully, ensuring proper cleanup 
 
 ## Known Limitations (v1)
 
-- File-based logging only (no remote logging, but can be extended using logging interface)
 - Limited RADIUS attributes extracted
 - Basic error recovery (no retry logic)
 - Test covarage < 80% (currently 55.2%)
