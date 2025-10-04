@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -14,6 +15,7 @@ type RedisNotifier struct {
 	client   *redis.Client
 	pubsub   *redis.PubSub
 	patterns []string
+	mu       sync.RWMutex // Protects pubsub and patterns fields
 }
 
 // NewRedisNotifier creates a new Redis notifier
@@ -48,9 +50,12 @@ func (rn *RedisNotifier) Subscribe(ctx context.Context, patterns []string) (<-ch
 		keyspacePatterns[i] = fmt.Sprintf("__keyspace@0__:%s", pattern)
 	}
 
+	// Lock for write access to pubsub and patterns
+	rn.mu.Lock()
 	// Subscribe to patterns
 	rn.pubsub = rn.client.PSubscribe(ctx, keyspacePatterns...)
 	rn.patterns = keyspacePatterns
+	rn.mu.Unlock()
 
 	// Create event buffered channel
 	eventChan := make(chan StorageEvent, 100)
@@ -59,11 +64,20 @@ func (rn *RedisNotifier) Subscribe(ctx context.Context, patterns []string) (<-ch
 	go func() {
 		defer close(eventChan)
 
+		// Get pubsub reference safely
+		rn.mu.RLock()
+		ps := rn.pubsub
+		rn.mu.RUnlock()
+
+		if ps == nil {
+			return
+		}
+
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			case msg, ok := <-rn.pubsub.Channel():
+			case msg, ok := <-ps.Channel():
 				if !ok {
 					return
 				}
@@ -109,7 +123,11 @@ func (rn *RedisNotifier) parseMessage(msg *redis.Message) *StorageEvent {
 
 // Unsubscribe from patterns
 func (rn *RedisNotifier) Unsubscribe(patterns []string) error {
-	if rn.pubsub == nil {
+	rn.mu.RLock()
+	ps := rn.pubsub
+	rn.mu.RUnlock()
+
+	if ps == nil {
 		return fmt.Errorf("not subscribed")
 	}
 
@@ -118,7 +136,7 @@ func (rn *RedisNotifier) Unsubscribe(patterns []string) error {
 		keyspacePatterns[i] = fmt.Sprintf("__keyspace@0__:%s", pattern)
 	}
 
-	return rn.pubsub.PUnsubscribe(context.Background(), keyspacePatterns...)
+	return ps.PUnsubscribe(context.Background(), keyspacePatterns...)
 }
 
 // HealthCheck verifies Redis connectivity
@@ -126,12 +144,17 @@ func (rn *RedisNotifier) HealthCheck(ctx context.Context) error {
 	return rn.client.Ping(ctx).Err()
 }
 
-// closes the notifier and cleans up resources
+// Close closes the notifier and cleans up resources
 func (rn *RedisNotifier) Close() error {
 	var err error
 
-	if rn.pubsub != nil {
-		err = rn.pubsub.Close()
+	rn.mu.Lock()
+	ps := rn.pubsub
+	rn.pubsub = nil
+	rn.mu.Unlock()
+
+	if ps != nil {
+		err = ps.Close()
 	}
 
 	if rn.client != nil {

@@ -1,40 +1,34 @@
-# RADIUS Accounting System v1
+# RADIUS Accounting System
 
 A production-ready RADIUS accounting server implementation in Go that processes RADIUS accounting packets, stores them in Redis, and provides real-time event notifications through a subscriber service.
 
-> **Version**: 1.0.0  
-> **Status**: Production Ready  
-> **Purpose**: Monitor and collect mirrored RADIUS accounting traffic for analysis
+**Version**: 2.0.0  
+**Status**: Production Ready  
+**Go Version**: 1.22+  
 
-## Overview
+## Purpose
 
-This system implements a complete RADIUS accounting solution following RFC 2866, designed to receive mirrored/copied RADIUS traffic for monitoring purposes (not performing authentication). It consists of three main services:
-
-- **radius-controlplane**: RADIUS server that processes accounting packets
-- **redis-controlplane-logger**: Event subscriber that logs all accounting activities
-- **redis**: Storage backend with keyspace notifications enabled
-- **radclient-test**: Test Container with freeradius-utils and out of the box sample tests
-
+Monitor and collect mirrored RADIUS accounting traffic for analysis. This system is designed to receive copied RADIUS traffic for monitoring purposes (not performing authentication).
 
 ## Features
 
 ### Core Functionality
-- RADIUS Accounting protocol (RFC 2866) support
-- Processes Start, Stop, and Interim-Update accounting types
-- Shared secret authentication for packet verification
-- Redis storage with configurable TTL
-- Real-time event notifications via Redis keyspace notifications
-- Persistent logging of all accounting events
+- **RFC 2866 Compliant**: Full RADIUS Accounting protocol support
+- **Accounting Types**: Processes Start, Stop, and Interim-Update packets
+- **Secure**: Shared secret authentication for packet verification
+- **Persistent Storage**: Redis with configurable TTL
+- **Real-time Events**: Redis keyspace notifications
+- **Comprehensive Logging**: All accounting events logged to file
 
 ### Technical Features
 - Database-agnostic storage interface
 - Generic event notification system
-- Graceful shutdown handling
+- Graceful shutdown with signal handling
 - Health check endpoints
-- Comprehensive error handling
-- Thread-safe logging
+- Thread-safe operations
 - Docker containerization
 - Docker Compose orchestration
+- **97.3% test coverage**
 
 ## Architecture
 
@@ -46,12 +40,18 @@ For detailed architecture diagrams, see [docs/architecture.md](docs/architecture
 
 ### Prerequisites
 - Docker & Docker Compose
-- Go 1.22+ (for local development)
-- Bash shell
+- Make (for build automation)
+- Go 1.22+ (for local development only)
 
-### Running the System
+### Installation
 
-1. **Create environment configuration**:
+1. **Clone the repository**:
+```bash
+git clone https://github.com/kal997/radius-accounting-server.git
+cd radius-accounting-server
+```
+
+2. **Configure environment**:
 ```bash
 cp .env.example .env
 # Edit .env with your configuration
@@ -67,60 +67,62 @@ LOG_FILE=./radius_accounting.log
 LOG_FILE_CONTAINER=/var/log/radius_updates.log
 ```
 
-2. **Start all services**:
+3. **Start the system**:
 ```bash
-./run.sh complete
+make run
 ```
 
-3. **Interactive testing** (start services + radclient shell):
+## Usage Guide
+
+### Service Management
+
 ```bash
-./run.sh full
+# Start all services (foreground)
+make run
+
+# Start services in background
+make run-detached
+
+# Stop all services
+make stop
+
+# View logs
+make logs
+
+# Interactive testing shell
+make shell
 ```
 
-4. **Stop all services**:
+### Testing the System
+
+#### Option 1: Interactive Shell (Recommended)
 ```bash
-./run.sh down
-```
+make shell
 
-## Testing
-
-### Using radclient (Recommended)
-
-The system includes pre-configured test files in the `examples/` directory.
-
-**Option 1: Entire Solution**
-```bash
-./run.sh complete
-```
-
-**Option 2: Interactive Shell**
-```bash
-./run.sh full
 # Inside the container:
 ./main.sh  # Sends both start and stop requests
-```
 
-**Option 3: Manual Testing**
-```bash
-# Start services, this will start the radius-controlplanner, radius-controlplane-logger, and redis services
-./run.sh full
-
-# Send Accounting-Start in the radclient interactive shell
+# Or manually:
 radclient -x $RADIUS_SERVER:1813 acct $RADIUS_SHARED_SECRET < /requests/acct_start.txt
-# Send Accounting-Stop in the radclient interactive shell
 radclient -x $RADIUS_SERVER:1813 acct $RADIUS_SHARED_SECRET < /requests/acct_stop.txt
 ```
 
-### Verifying Results
+#### Option 2: Direct Docker Commands
+```bash
+# Send test accounting packet
+docker run --rm \
+  --network radius-network \
+  -v ./examples:/requests \
+  radclient-test \
+  radclient -x radius-controlplane:1813 acct your-secret < /requests/acct_start.txt
+```
+
+### Verifying Operation
 
 1. **Check RADIUS server logs**:
 ```bash
 docker logs radius-controlplane
-```
-
-Expected output:
-```
-Stored accounting record: radius:acct:testuser:session12345:2024-01-15T10:30:45Z
+# Expected: "Stored accounting record: radius:acct:testuser:session12345:..."
 ```
 
 2. **Check Redis data**:
@@ -133,11 +135,77 @@ docker exec -it redis redis-cli
 3. **Check subscriber logs**:
 ```bash
 cat radius_accounting.log
+# Expected: "2024-01-15 10:30:45.123456 - Received update for key: ..."
 ```
 
-Expected format:
+## Testing
+
+The project maintains 95%+ test coverage with unit and integration tests.
+
+### Test Commands
+
+```bash
+# Run all tests with coverage report
+make test
+
+# Unit tests only (fast, no dependencies)
+make test-unit
+
+# Integration tests only (requires Redis)
+make test-integration
+
+# Generate HTML coverage report
+make coverage-html
+# Then open coverage.html in browser
+
+# Run tests with race detection
+make test-race
 ```
-2024-01-15 10:30:45.123456 - Received update for key: radius:acct:testuser:session12345:2024-01-15T10:30:45Z, Operation: set
+
+### Test Structure
+- **Unit Tests**: Config validation, model parsing, notification handling
+- **Integration Tests**: Redis storage, file logging, end-to-end flows
+- **Race Detection**: All tests run with `-race` flag for concurrency safety
+
+## Development
+
+### Local Development Setup
+
+```bash
+# Install dependencies
+make mod-download
+
+# Format code
+make fmt
+
+# Run linters
+make lint
+
+# Run go vet
+make vet
+
+# Pre-commit checks
+make pre-commit
+```
+
+### Building from Source
+
+```bash
+# Build binaries
+make build
+
+# Build Docker images
+make build-docker
+
+# Clean build artifacts
+make clean
+```
+
+### CI/CD Pipeline
+
+```bash
+# Run full CI pipeline (lint, test, build)
+make ci
 ```
 
 ## Project Structure
@@ -145,24 +213,26 @@ Expected format:
 ```
 .
 ├── cmd/
-│   ├── radclient-test/          # Test container with freeradius-utils
-│   ├── radius-controlplane/     # Main RADIUS server
-│   └── radius-controlplane-logger/ # Event subscriber service
+│   ├── radclient-test/              # Test client container
+│   ├── radius-controlplane/         # Main RADIUS server
+│   └── radius-controlplane-logger/  # Event subscriber service
 ├── internal/
-│   ├── config/                  # Configuration management
-│   ├── logger/                  # logging interface and file logging implementation
-│   ├── models/                  # Data models (AccountingRecord)
-│   ├── notifier/                # Event notification interface and redis implementation
-│   └── storage/                 # Storage interface and Redis implementation
-├── examples/                    # Sample RADIUS packets
-├── docs/                        # Architecture documentation
-├── docker-compose.yml           # Container orchestration
-└── run.sh                       # Convenience script
+│   ├── config/                      # Configuration management
+│   ├── logger/                      # File logging implementation
+│   ├── models/                      # Data models
+│   ├── notifier/                    # Event notifications
+│   └── storage/                     # Storage abstraction
+├── examples/                        # Sample RADIUS packets
+├── docs/                           # Architecture documentation
+├── test/                           # Integration tests
+├── Makefile                        # Build automation
+├── docker-compose.yml              # Service orchestration
+└── docker-compose.integration.yml  # Test orchestration
 ```
 
 ## Data Model
 
-### Accounting Record Structure
+### Accounting Record
 ```json
 {
   "username": "testuser",
@@ -184,11 +254,6 @@ Expected format:
 radius:acct:{username}:{acct_session_id}:{timestamp}
 ```
 
-Example:
-```
-radius:acct:testuser:session12345:2024-01-15T10:30:45.123456789Z
-```
-
 ## Configuration
 
 ### Environment Variables
@@ -205,134 +270,140 @@ radius:acct:testuser:session12345:2024-01-15T10:30:45.123456789Z
 
 ### Redis Configuration
 
-Redis is configured with keyspace notifications enabled:
-```bash
+Redis runs with keyspace notifications enabled:
+```redis
 notify-keyspace-events KEA
 ```
+- **K**: Keyspace events (operations on keys)
+- **E**: Expired events
+- **A**: All commands affecting keys
 
-This enables the subscriber service to receive real-time notifications when keys are created, modified, or expired.
+## Advanced Usage
 
-## Development
+### Custom Storage Backend
 
-### Running Locally (Without Docker)
+The system uses interface-based design for easy extensibility:
 
-1. **Start Redis**:
-```bash
-redis-server --notify-keyspace-events KEA
+```go
+type Storage interface {
+    Store(ctx context.Context, record *models.AccountingRecord) error
+    HealthCheck(ctx context.Context) error
+    Close() error
+}
 ```
 
-2. **Create .env file**:
-```bash
-RADIUS_SHARED_SECRET=testing123
-REDIS_HOST=localhost
-RECORD_TTL_HOURS=24
-LOG_LEVEL=debug
-LOG_FILE=./radius_accounting.log
+To implement a different backend (PostgreSQL, MongoDB, etc.), simply implement this interface.
+
+### Custom Notifier
+
+```go
+type Notifier interface {
+    Subscribe(ctx context.Context, patterns []string) (<-chan StorageEvent, error)
+    Unsubscribe(patterns []string) error
+    HealthCheck(ctx context.Context) error
+    Close() error
+}
 ```
 
-3. **Run RADIUS server**:
-```bash
-go run cmd/radius-controlplane/main.go
-```
+## Design Principles
 
-4. **Run subscriber** (in another terminal):
-```bash
-go run cmd/radius-controlplane-logger/main.go
-```
+1. **Protocol Compliance**: Always sends RADIUS response, even on storage failure
+2. **Graceful Degradation**: System remains operational if non-critical components fail
+3. **Interface Segregation**: Clean interfaces for storage and notifications
+4. **Context Propagation**: Proper cancellation and timeout handling
+5. **Defensive Programming**: Comprehensive error handling and validation
 
-5. **Send test packets**:
-```bash
-radclient -x localhost:1813 acct testing123 < examples/acct_start.txt
-```
+## Performance Characteristics
 
-### Running Tests
+- **Buffered Channels**: 100-item buffers prevent blocking
+- **Automatic Cleanup**: Redis TTL prevents unbounded growth
+- **Disk Durability**: Logs synced to disk after each write
+- **Concurrent Safe**: Race-condition free implementation
 
-The project includes comprehensive unit and integration tests with >80% code coverage.
+## Security Considerations
 
-**Quick test commands via run.sh:**
+- Minimum 8-character shared secret requirement
+- All packets validated against shared secret
+- No authentication data stored (accounting only)
+- Docker container isolation
+- Minimal container images (Alpine-based)
 
-```bash
-# Run all tests (unit + integration + Overall Coverage)
-./run.sh test
+## Makefile Targets
 
-# Run only unit tests (fast, no dependencies)
-./run.sh test-unit
-
-# Run only integration tests (requires Redis)
-./run.sh test-integration
-```
-
-**Manual test execution:**
+Run `make help` to see all available targets:
 
 ```bash
-# Unit tests (no Redis required)
-go test -v -race ./internal/config
-go test -v -race ./internal/models
-go test -v -race ./internal/notifier
+Development:
+  run                  Run the application locally
+  run-detached         Run in background
+  stop                 Stop all services
+  logs                 Show logs
+  shell                Start interactive shell
 
-# Integration tests (requires Redis running)
-docker compose up -d redis
-go test -v -race ./internal/storage
-go test -v -race ./internal/logger
+Testing:
+  test                 Run all tests with coverage
+  test-unit            Run unit tests
+  test-integration     Run integration tests
+  coverage-html        Generate HTML coverage
+
+Build:
+  build                Build binaries
+  build-docker         Build Docker images
+  clean                Clean artifacts
+
+Code Quality:
+  lint                 Run linters
+  fmt                  Format code
+  vet                  Run go vet
+
+CI/CD:
+  ci                   Run full pipeline
+  pre-commit           Pre-commit checks
 ```
 
-**Test Coverage:**
+## Troubleshooting
 
-```bash
-# Generate coverage report
-go test -coverprofile=coverage.out ./internal/...
-go tool cover -html=coverage.out
-```
+### Common Issues
 
-**Test Packages:**
-- `internal/config`: Configuration loading and validation tests
-- `internal/models`: Accounting record parsing and validation tests
-- `internal/notifier`: Redis keyspace notification parsing tests
-- `internal/storage`: Redis storage integration tests
-- `internal/logger`: File logging integration tests
+1. **Redis connection failed**
+   - Ensure Redis is running: `docker ps`
+   - Check Redis logs: `docker logs redis`
 
-All tests include race detection (`-race` flag) to catch concurrency issues.
+2. **Invalid shared secret**
+   - Verify `.env` file exists and is loaded
+   - Ensure secret is at least 8 characters
 
-## Design Decisions
+3. **No logs appearing**
+   - Check file permissions on log file
+   - Verify LOG_FILE path exists
 
-### Database-Agnostic Interfaces
-The system uses interface-based design for storage and notifications, making it easy to swap Redis for other databases (PostgreSQL, MongoDB, etc.) without changing business logic.
+4. **Test failures**
+   - Ensure Redis is running for integration tests
+   - Check for port conflicts (1813, 6379)
 
-### Always Send RADIUS Response
-The server always sends an Accounting-Response, even if Redis storage fails. This ensures RADIUS protocol compliance and prevents client timeouts.
+## Version History
 
-### Channel-Based Event System
-The notification system uses Go channels for event distribution, providing natural concurrency patterns and backpressure control.
-
-### Graceful Shutdown
-Both services handle SIGINT/SIGTERM signals gracefully, ensuring proper cleanup of Redis connections and file handles through context propagation.
-
-## Performance Considerations
-
-- **Buffered Channels**: Event channels use 100-item buffers to prevent blocking
-- **Redis TTL**: Automatic expiration prevents unbounded storage growth
-- **File Sync**: Log writes are synced to disk for durability
-
-## Security Notes
-
-- RADIUS shared secret must be at least 8 characters
-- All RADIUS packets are validated using the shared secret
-
-## Known Limitations (v1)
-
-- File-based logging only (no remote logging, but can be extended using logging interface)
-- Limited RADIUS attributes extracted
-- Basic error recovery (no retry logic)
-- Test covarage < 80% (currently 55.2%)
+- **2.0.0** (Current) - Makefile automation, improved test coverage, production optimizations
+- **1.0.0** - Initial release with core RADIUS accounting functionality
 
 ## References
 
 - [RFC 2866 - RADIUS Accounting](https://tools.ietf.org/html/rfc2866)
-- [layeh.com/radius - Go RADIUS Library](https://github.com/layeh/radius)
-- [Redis Keyspace Notifications](https://redis.io/docs/latest/develop/pubsub/keyspace-notifications/)
-- [FreeRADIUS radclient Documentation](https://freeradius.org/radiusd/man/radclient.html)
+- [layeh.com/radius - Go Library](https://github.com/layeh/radius)
+- [Redis Keyspace Notifications](https://redis.io/docs/manual/keyspace-notifications/)
+- [FreeRADIUS Documentation](https://freeradius.org/)
 
+## Author
 
-## Support
+**Khaled Soliman**
+- Email: khaled.soliman97@gmail.com
+- GitHub: [@kal997](https://github.com/kal997)
 
-For issues and questions, please refer to the documentation in the `docs/` directory or contact [me](mailto:khaled.soliman97@gmail.com) directly.
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing`)
+3. Run pre-commit checks (`make pre-commit`)
+4. Commit your changes (`git commit -m 'Add amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing`)
+6. Open a Pull Request

@@ -38,7 +38,19 @@ type Config struct {
 func LoadFromEnv() (*Config, error) {
 	config := &Config{
 		radiusPort: 1813, // Standard RADIUS accounting port
-		redisPort:  6379, // Standard Redis port
+
+	}
+
+	// if port is not defined, fallback to standard port
+	redisAddr := os.Getenv("REDIS_PORT")
+	if redisAddr == "" {
+		config.redisPort = 6379 // Standard Redis port
+	} else {
+		port, err := strconv.Atoi(redisAddr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid REDIS_ADDR: %w", err)
+		}
+		config.redisPort = port
 	}
 
 	// RADIUS configuration

@@ -1,14 +1,17 @@
-package storage
+//go:build integration
+// +build integration
+
+package integration
 
 import (
 	"context"
 	"testing"
 	"time"
 
+	"github.com/kal997/radius-accounting-server/internal/config"
+	"github.com/kal997/radius-accounting-server/internal/models"
+	"github.com/kal997/radius-accounting-server/internal/storage"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/kal997/radius-accounting-system/internal/config"
-	"github.com/kal997/radius-accounting-system/internal/models"
 )
 
 // internal/storage/integration_test.go
@@ -20,7 +23,7 @@ func TestRedisStorage_Integration(t *testing.T) {
 	}
 
 	// Create storage
-	storage, err := NewRedisStorage(cfg)
+	storage, err := storage.NewRedisStorage(cfg)
 	if err != nil {
 		t.Skipf("Redis not available: %v", err)
 	}

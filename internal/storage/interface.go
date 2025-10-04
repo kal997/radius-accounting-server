@@ -3,9 +3,8 @@ package storage
 import (
 	"context"
 
-	"github.com/kal997/radius-accounting-system/internal/models"
+	"github.com/kal997/radius-accounting-server/internal/models"
 )
-
 
 // Storage defines the database-agnostic storage interface
 type Storage interface {

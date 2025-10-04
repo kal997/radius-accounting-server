@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/kal997/radius-accounting-system/internal/config"
-	"github.com/kal997/radius-accounting-system/internal/models"
-	"github.com/kal997/radius-accounting-system/internal/storage"
+	"github.com/kal997/radius-accounting-server/internal/config"
+	"github.com/kal997/radius-accounting-server/internal/models"
+	"github.com/kal997/radius-accounting-server/internal/storage"
 
 	"github.com/joho/godotenv"
 
