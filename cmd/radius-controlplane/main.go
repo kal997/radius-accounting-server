@@ -8,11 +8,10 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/joho/godotenv"
 	"github.com/kal997/radius-accounting-server/internal/config"
 	"github.com/kal997/radius-accounting-server/internal/models"
 	"github.com/kal997/radius-accounting-server/internal/storage"
-
-	"github.com/joho/godotenv"
 
 	"layeh.com/radius"
 )
@@ -94,35 +93,45 @@ func main() {
 
 func handleAccounting(store storage.Storage) func(w radius.ResponseWriter, r *radius.Request) {
 	return func(w radius.ResponseWriter, r *radius.Request) {
+		var resp *radius.Packet
 
-		var responseCode radius.Code = radius.CodeAccountingResponse
+		// Default response code
+		respCode := radius.CodeAccountingResponse
+
+		defer func() {
+			// Always send response back, even in error cases
+			resp = r.Response(respCode)
+			if err := w.Write(resp); err != nil {
+				log.Printf("Failed to send accounting response: %v", err)
+			}
+		}()
 
 		if r.Code != radius.CodeAccountingRequest {
 			log.Printf("Received non-accounting request: %d", r.Code)
-
-		} else {
-
-			clientIP := getClientIP(r)
-
-			record, err := models.NewAccountingRecordFromRADIUS(r.Packet, clientIP)
-			if err != nil {
-				log.Printf("Failed to parse accounting packet: %v", err)
-			} else if err := record.Validate(); err != nil {
-				log.Printf("Invalid accounting record: %v", err)
-			} else if err := store.Store(context.Background(), record); err != nil {
-				log.Printf("Failed to store accounting record: %v", err)
-			} else {
-				log.Printf("Stored accounting record: %s", record.GenerateRedisKey())
-			}
+			return
 		}
 
-		// Send accounting response following RADUIS specs
-		response := r.Response(responseCode)
-		if err := w.Write(response); err != nil {
-			log.Printf("Failed to send response: %v", err)
+		clientIP := getClientIP(r)
+		event, err := models.ParseRADIUSPacket(r.Packet, clientIP)
+		if err != nil {
+			log.Printf("Failed to parse accounting packet: %v", err)
+			return
 		}
+
+		if err := event.Validate(); err != nil {
+			log.Printf("Invalid accounting record: %v", err)
+			return
+		}
+
+		if err := store.Store(context.Background(), event); err != nil {
+			log.Printf("Failed to store accounting record: %v", err)
+			return
+		}
+
+		log.Printf("Stored %v record: %s", event.GetType(), event.GenerateRedisKey())
 	}
 }
+
 func getClientIP(r *radius.Request) string {
 	if addr, ok := r.RemoteAddr.(*net.UDPAddr); ok {
 		return addr.IP.String()

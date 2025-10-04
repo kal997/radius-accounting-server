@@ -1,0 +1,16 @@
+User-Name = "testuser"
+Acct-Status-Type = Interim-Update
+Acct-Session-Id = "session12345"
+NAS-IP-Address = 192.168.1.1
+NAS-Port = 0
+Calling-Station-Id = "123-456-7890"
+Called-Station-Id = "987-654-3210"
+Framed-IP-Address = 10.0.0.100
+Acct-Session-Time = 3600
+Acct-Input-Octets = 1256789
+Acct-Output-Octets = 2489210
+Acct-Input-Packets = 11345
+Acct-Output-Packets = 11980
+Acct-Delay-Time = 0
+Acct-Authentic = RADIUS
+Acct-Terminate-Cause = User-Request

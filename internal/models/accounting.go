@@ -9,6 +9,8 @@ import (
 	"layeh.com/radius/rfc2866"
 )
 
+// ======================= ENUM =======================
+
 type AccRecordType int
 
 const (
@@ -17,115 +19,167 @@ const (
 	Interim
 )
 
-type AccountingRecord struct {
+// ======================= INTERFACE =======================
+type AccountingEvent interface {
+	Validate() error
+	GenerateRedisKey() string
+	GetType() AccRecordType
+}
+
+// ======================= BASE STRUCT =====================
+type BaseAccountingRecord struct {
 	// The username from the RADIUS request (User-Name attribute)
-	Username string `json:"username"`
-
+	Username         string `json:"username"`
 	// The IP address of the Network Access Server (NAS-IP-Address attribute)
-	NASIPAddress string `json:"nas_ip_address"`
-
+	NASIPAddress     string `json:"nas_ip_address"`
 	// The port number on the NAS (NAS-Port attribute)
-	NASPort int `json:"nas_port"`
-
-	// The type of accounting record (Start, Stop, etc.) (Acct-Status-Type attribute)
-	AcctStatusType AccRecordType `json:"acct_status_type"`
-
+	NASPort          int    `json:"nas_port"`
 	// Unique identifier for the session (Acct-Session-Id attribute)
-	AcctSessionID string `json:"acct_session_id"`
-
-	// IP address assigned to the user (Framed-IP-Address attribute)
-	FramedIPAddress string `json:"framed_ip_address"`
-
+	AcctSessionID    string `json:"acct_session_id"`
 	// The caller's identifier (Calling-Station-Id attribute)
 	CallingStationID string `json:"calling_station_id"`
-
 	// The called party's identifier (Called-Station-Id attribute)
-	CalledStationID string `json:"called_station_id"`
-
-	// When the accounting request was received
-	Timestamp string `json:"timestamp"`
-
+	CalledStationID  string `json:"called_station_id"`
 	// The IP address of the client making the request
-	ClientIP string `json:"client_ip"`
-
-	// The type of RADIUS packet (e.g., "Accounting-Request", "Accounting-Response")
-	PacketType string `json:"packet_type"`
+	ClientIP         string `json:"client_ip"`
+	// When the accounting request was received
+	Timestamp        string `json:"timestamp"`
 }
 
-// Constructor function
-func NewAccountingRecordFromRADIUS(packet *radius.Packet, clientIP string) (*AccountingRecord, error) {
-	if packet == nil {
-		return nil, fmt.Errorf("packet cannot be nil")
-	}
-
-	// Extract attributes from RADIUS packet
-	username := rfc2865.UserName_GetString(packet)
-	acctStatusType := rfc2866.AcctStatusType_Get(packet)
-	acctSessionID := rfc2866.AcctSessionID_GetString(packet)
-	nasIPAddress := rfc2865.NASIPAddress_Get(packet)
-	nasPort := rfc2865.NASPort_Get(packet)
-	framedIPAddress := rfc2865.FramedIPAddress_Get(packet)
-	callingStationID := rfc2865.CallingStationID_GetString(packet)
-	calledStationID := rfc2865.CalledStationID_GetString(packet)
-
-	// Convert status type to our enum
-	var statusType AccRecordType
-	switch acctStatusType {
-	case rfc2866.AcctStatusType_Value_Start:
-		statusType = Start
-	case rfc2866.AcctStatusType_Value_Stop:
-		statusType = Stop
-	case rfc2866.AcctStatusType_Value_InterimUpdate:
-		statusType = Interim
-	default:
-		return nil, fmt.Errorf("unsupported accounting status type: %d", acctStatusType)
-	}
-
-	// Create timestamp
-	timestamp := time.Now().UTC().Format(time.RFC3339Nano)
-
-	record := &AccountingRecord{
-		Username:         username,
-		NASIPAddress:     nasIPAddress.String(),
-		NASPort:          int(nasPort),
-		AcctStatusType:   statusType,
-		AcctSessionID:    acctSessionID,
-		FramedIPAddress:  framedIPAddress.String(),
-		CallingStationID: callingStationID,
-		CalledStationID:  calledStationID,
-		Timestamp:        timestamp,
-		ClientIP:         clientIP,
-		PacketType:       "Accounting-Request",
-	}
-
-	return record, nil
+// ======================= SPECIFIC TYPES ==================
+type StartRecord struct {
+	BaseAccountingRecord
+	// IP address assigned to the user (Framed-IP-Address attribute)
+	FramedIPAddress string `json:"framed_ip_address"`
 }
 
-// Validate checks if the accounting record has all required fields
-func (ar *AccountingRecord) Validate() error {
-	if ar.Username == "" {
+type StopRecord struct {
+	BaseAccountingRecord
+	SessionTime    int    `json:"session_time"`
+	// This attribute indicates how many seconds the user has received service for.
+	TerminateCause string `json:"terminate_cause"`
+	// This attribute indicates how many octets have been received from the port over the course of this service being provided.
+	InputOctets    uint64 `json:"input_octets"`
+	// This attribute indicates how many octets have been sent to the port in the course of delivering this service.
+	OutputOctets   uint64 `json:"output_octets"`
+}
+
+type InterimRecord struct {
+	BaseAccountingRecord
+	// This attribute indicates how many seconds the user has received service for.
+	SessionTime  int    `json:"session_time"`
+	// This attribute indicates how many octets have been received from the port over the course of this service being provided.
+	InputOctets  uint64 `json:"input_octets"`
+	// This attribute indicates how many octets have been sent to the port in the course of delivering this service.
+	OutputOctets uint64 `json:"output_octets"`
+}
+
+// ======================= VALIDATION ======================
+func (b *BaseAccountingRecord) validateBase() error {
+	if b.Username == "" {
 		return fmt.Errorf("username is required")
 	}
-	if ar.AcctSessionID == "" {
-		return fmt.Errorf("accounting session ID is required")
+	if b.AcctSessionID == "" {
+		return fmt.Errorf("acct session id is required")
 	}
-	if ar.NASIPAddress == "" {
+	if b.NASIPAddress == "" {
 		return fmt.Errorf("NAS IP address is required")
 	}
-	if ar.AcctStatusType < Start || ar.AcctStatusType > Interim {
-		return fmt.Errorf("invalid accounting status type: %d", ar.AcctStatusType)
-	}
-	if ar.Timestamp == "" {
-		return fmt.Errorf("timestamp is required")
-	}
-	if ar.ClientIP == "" {
+	if b.ClientIP == "" {
 		return fmt.Errorf("client IP is required")
 	}
 	return nil
 }
 
-// GenerateRedisKey creates the unique key for Redis storage
-func (ar *AccountingRecord) GenerateRedisKey() string {
-	// Format: radius:acct:{username}:{acct_session_id}:{timestamp}
-	return fmt.Sprintf("radius:acct:%s:%s:%s", ar.Username, ar.AcctSessionID, ar.Timestamp)
+func (r *StartRecord) Validate() error {
+	if err := r.validateBase(); err != nil {
+		return err
+	}
+	if r.FramedIPAddress == "" {
+		return fmt.Errorf("framed IP address required for Start record")
+	}
+	return nil
+}
+
+func (r *StopRecord) Validate() error {
+	if err := r.validateBase(); err != nil {
+		return err
+	}
+	if r.SessionTime == 0 {
+		return fmt.Errorf("session time required for Stop record")
+	}
+	if r.TerminateCause == "" {
+		return fmt.Errorf("terminate cause required for Stop record")
+	}
+	return nil
+}
+
+func (r *InterimRecord) Validate() error {
+	if err := r.validateBase(); err != nil {
+		return err
+	}
+	if r.SessionTime == 0 {
+		return fmt.Errorf("session time required for Interim-Update record")
+	}
+	return nil
+}
+
+// ======================= GET TYPE =========================
+func (r *StartRecord) GetType() AccRecordType   { return Start }
+func (r *StopRecord) GetType() AccRecordType    { return Stop }
+func (r *InterimRecord) GetType() AccRecordType { return Interim }
+
+// ======================= REDIS KEY =========================
+func (r *BaseAccountingRecord) keyPrefix() string {
+	return fmt.Sprintf("radius:acct:%s:%s:%s", r.Username, r.AcctSessionID, r.Timestamp)
+}
+func (r *StartRecord) GenerateRedisKey() string   { return "start:" + r.keyPrefix() }
+func (r *StopRecord) GenerateRedisKey() string    { return "stop:" + r.keyPrefix() }
+func (r *InterimRecord) GenerateRedisKey() string { return "interim:" + r.keyPrefix() }
+
+// ======================= PARSER ===========================
+func ParseRADIUSPacket(packet *radius.Packet, clientIP string) (AccountingEvent, error) {
+	if packet == nil {
+		return nil, fmt.Errorf("packet cannot be nil")
+	}
+
+	statusType := rfc2866.AcctStatusType_Get(packet)
+	base := BaseAccountingRecord{
+		Username:         rfc2865.UserName_GetString(packet),
+		NASIPAddress:     rfc2865.NASIPAddress_Get(packet).String(),
+		NASPort:          int(rfc2865.NASPort_Get(packet)),
+		AcctSessionID:    rfc2866.AcctSessionID_GetString(packet),
+		CallingStationID: rfc2865.CallingStationID_GetString(packet),
+		CalledStationID:  rfc2865.CalledStationID_GetString(packet),
+		ClientIP:         clientIP,
+		Timestamp:        time.Now().UTC().Format(time.RFC3339Nano),
+	}
+
+	switch statusType {
+	case rfc2866.AcctStatusType_Value_Start:
+		return &StartRecord{
+			BaseAccountingRecord: base,
+			FramedIPAddress:      rfc2865.FramedIPAddress_Get(packet).String(),
+		}, nil
+
+	case rfc2866.AcctStatusType_Value_Stop:
+		return &StopRecord{
+			BaseAccountingRecord: base,
+			SessionTime:          int(rfc2866.AcctSessionTime_Get(packet)),
+			TerminateCause:       fmt.Sprintf("%d", rfc2866.AcctTerminateCause_Get(packet)),
+			InputOctets:          uint64(rfc2866.AcctInputOctets_Get(packet)),
+			OutputOctets:         uint64(rfc2866.AcctOutputOctets_Get(packet)),
+		}, nil
+
+	case rfc2866.AcctStatusType_Value_InterimUpdate:
+		return &InterimRecord{
+			BaseAccountingRecord: base,
+			SessionTime:          int(rfc2866.AcctSessionTime_Get(packet)),
+			InputOctets:          uint64(rfc2866.AcctInputOctets_Get(packet)),
+			OutputOctets:         uint64(rfc2866.AcctOutputOctets_Get(packet)),
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("unsupported accounting status type: %d", statusType)
+	}
 }

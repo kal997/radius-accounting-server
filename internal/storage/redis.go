@@ -40,14 +40,13 @@ func NewRedisStorage(cfg *config.Config) (*RedisStorage, error) {
 }
 
 // Store saves an accounting record
-func (rs *RedisStorage) Store(ctx context.Context, record *models.AccountingRecord) error {
-	key := record.GenerateRedisKey()
-
+func (rs *RedisStorage) Store(ctx context.Context, record models.AccountingEvent) error {
 	data, err := json.Marshal(record)
 	if err != nil {
 		return fmt.Errorf("failed to marshal record: %w", err)
 	}
 
+	key := record.GenerateRedisKey()
 	if err := rs.client.Set(ctx, key, data, rs.ttl).Err(); err != nil {
 		return fmt.Errorf("failed to store record in Redis: %w", err)
 	}
