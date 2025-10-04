@@ -101,14 +101,15 @@ func TestRedisStorage_Store_Success(t *testing.T) {
 	storage, mr, cleanup := newTestStorage(t, 5*time.Minute)
 	defer cleanup()
 
-	record := &models.AccountingRecord{
-		Username:       "testuser",
-		AcctSessionID:  "session123",
-		NASIPAddress:   "127.0.0.1",
-		AcctStatusType: models.Start,
-		Timestamp:      time.Now().Format(time.RFC3339Nano),
-		ClientIP:       "192.168.1.10",
-		PacketType:     "Accounting-Request",
+	record := &models.StartRecord{
+		BaseAccountingRecord: models.BaseAccountingRecord{
+			Username:      "testuser",
+			AcctSessionID: "session123",
+			NASIPAddress:  "127.0.0.1",
+			ClientIP:      "192.168.1.10",
+			Timestamp:     time.Now().Format(time.RFC3339Nano),
+		},
+		FramedIPAddress: "10.0.0.5",
 	}
 
 	ctx := context.Background()
@@ -120,7 +121,7 @@ func TestRedisStorage_Store_Success(t *testing.T) {
 	val, err := mr.Get(key)
 	require.NoError(t, err)
 
-	var got models.AccountingRecord
+	var got models.StartRecord
 	require.NoError(t, json.Unmarshal([]byte(val), &got))
 	assert.Equal(t, record.Username, got.Username)
 	assert.Equal(t, record.AcctSessionID, got.AcctSessionID)
@@ -136,14 +137,15 @@ func TestRedisStorage_Store_RedisError(t *testing.T) {
 	storage, mr, cleanup := newTestStorage(t, 5*time.Minute)
 	defer cleanup()
 
-	record := &models.AccountingRecord{
-		Username:       "testuser",
-		AcctSessionID:  "session123",
-		NASIPAddress:   "127.0.0.1",
-		AcctStatusType: models.Start,
-		Timestamp:      time.Now().Format(time.RFC3339Nano),
-		ClientIP:       "192.168.1.10",
-		PacketType:     "Accounting-Request",
+	record := &models.StartRecord{
+		BaseAccountingRecord: models.BaseAccountingRecord{
+			Username:      "testuser",
+			AcctSessionID: "session123",
+			NASIPAddress:  "127.0.0.1",
+			ClientIP:      "192.168.1.10",
+			Timestamp:     time.Now().Format(time.RFC3339Nano),
+		},
+		FramedIPAddress: "10.0.0.5",
 	}
 
 	// Close miniredis to simulate Redis failure
@@ -187,14 +189,15 @@ func TestRedisStorage_Store_ContextCancelled(t *testing.T) {
 	storage, _, cleanup := newTestStorage(t, 5*time.Minute)
 	defer cleanup()
 
-	record := &models.AccountingRecord{
-		Username:       "testuser",
-		AcctSessionID:  "session123",
-		NASIPAddress:   "127.0.0.1",
-		AcctStatusType: models.Start,
-		Timestamp:      time.Now().Format(time.RFC3339Nano),
-		ClientIP:       "192.168.1.10",
-		PacketType:     "Accounting-Request",
+	record := &models.StartRecord{
+		BaseAccountingRecord: models.BaseAccountingRecord{
+			Username:      "testuser",
+			AcctSessionID: "session123",
+			NASIPAddress:  "127.0.0.1",
+			ClientIP:      "192.168.1.10",
+			Timestamp:     time.Now().Format(time.RFC3339Nano),
+		},
+		FramedIPAddress: "10.0.0.5",
 	}
 
 	// Create a cancelled context
@@ -266,15 +269,17 @@ func TestRedisStorage_FullIntegration(t *testing.T) {
 
 	// Store multiple records
 	for i := 0; i < 3; i++ {
-		record := &models.AccountingRecord{
-			Username:       "user" + string(rune('0'+i)),
-			AcctSessionID:  "session" + string(rune('0'+i)),
-			NASIPAddress:   "10.0.0." + string(rune('0'+i)),
-			AcctStatusType: models.Start,
-			Timestamp:      time.Now().Add(time.Duration(i) * time.Second).Format(time.RFC3339Nano),
-			ClientIP:       "192.168.1." + string(rune('0'+i)),
-			PacketType:     "Accounting-Request",
+		record := &models.StartRecord{
+			BaseAccountingRecord: models.BaseAccountingRecord{
+				Username:      "user" + string(rune('0'+i)),
+				AcctSessionID: "session" + string(rune('0'+i)),
+				NASIPAddress:  "10.0.0." + string(rune('0'+i)),
+				ClientIP:      "192.168.1." + string(rune('0'+i)),
+				Timestamp:     time.Now().Add(time.Duration(i) * time.Second).Format(time.RFC3339Nano),
+			},
+			FramedIPAddress: "10.0.0." + string(rune('0'+i)),
 		}
+
 		assert.NoError(t, storage.Store(ctx, record))
 	}
 
@@ -289,14 +294,15 @@ func BenchmarkRedisStorage_Store(b *testing.B) {
 	defer cleanup()
 
 	ctx := context.Background()
-	record := &models.AccountingRecord{
-		Username:       "benchuser",
-		AcctSessionID:  "benchsession",
-		NASIPAddress:   "127.0.0.1",
-		AcctStatusType: models.Start,
-		Timestamp:      time.Now().Format(time.RFC3339Nano),
-		ClientIP:       "192.168.1.10",
-		PacketType:     "Accounting-Request",
+	record := &models.StartRecord{
+		BaseAccountingRecord: models.BaseAccountingRecord{
+			Username:      "benchuser",
+			AcctSessionID: "benchsession",
+			NASIPAddress:  "127.0.0.1",
+			ClientIP:      "192.168.1.10",
+			Timestamp:     time.Now().Format(time.RFC3339Nano),
+		},
+		FramedIPAddress: "10.0.0.55",
 	}
 
 	b.ResetTimer()

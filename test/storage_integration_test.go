@@ -29,15 +29,16 @@ func TestRedisStorage_Integration(t *testing.T) {
 	}
 	defer storage.Close()
 
-	// Create test record
-	record := &models.AccountingRecord{
-		Username:       "testuser",
-		AcctSessionID:  "session123",
-		NASIPAddress:   "192.168.1.1",
-		AcctStatusType: models.Start,
-		Timestamp:      time.Now().Format(time.RFC3339Nano),
-		ClientIP:       "192.168.1.100",
-		PacketType:     "Accounting-Request",
+	// Create start test record
+	record := &models.StartRecord{
+		BaseAccountingRecord: models.BaseAccountingRecord{
+			Username:      "testuser",
+			AcctSessionID: "session123",
+			NASIPAddress:  "127.0.0.1",
+			ClientIP:      "192.168.1.10",
+			Timestamp:     time.Now().Format(time.RFC3339Nano),
+		},
+		FramedIPAddress: "10.0.0.5",
 	}
 
 	// Test store

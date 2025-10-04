@@ -28,7 +28,7 @@ Monitor and collect mirrored RADIUS accounting traffic for analysis. This system
 - Thread-safe operations
 - Docker containerization
 - Docker Compose orchestration
-- **97.3% test coverage**
+- **95.9% test coverage**
 
 ## Architecture
 
