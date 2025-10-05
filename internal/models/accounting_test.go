@@ -179,9 +179,9 @@ func TestGenerateRedisKey(t *testing.T) {
 	stop := &StopRecord{BaseAccountingRecord: base}
 	interim := &InterimRecord{BaseAccountingRecord: base}
 
-	assert.Contains(t, start.GenerateRedisKey(), "start:radius:acct:user:sess123:")
-	assert.Contains(t, stop.GenerateRedisKey(), "stop:radius:acct:user:sess123:")
-	assert.Contains(t, interim.GenerateRedisKey(), "interim:radius:acct:user:sess123:")
+	assert.Contains(t, start.GenerateRedisKey(), "radius:acct:user:sess123:2025-10-04T15:00:00Z:start")
+	assert.Contains(t, stop.GenerateRedisKey(), "radius:acct:user:sess123:2025-10-04T15:00:00Z:stop")
+	assert.Contains(t, interim.GenerateRedisKey(), "radius:acct:user:sess123:2025-10-04T15:00:00Z:interim")
 }
 
 func TestParseRADIUSPacket_Start(t *testing.T) {

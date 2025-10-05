@@ -133,9 +133,9 @@ func (r *InterimRecord) GetType() AccRecordType { return Interim }
 func (r *BaseAccountingRecord) keyPrefix() string {
 	return fmt.Sprintf("radius:acct:%s:%s:%s", r.Username, r.AcctSessionID, r.Timestamp)
 }
-func (r *StartRecord) GenerateRedisKey() string   { return "start:" + r.keyPrefix() }
-func (r *StopRecord) GenerateRedisKey() string    { return "stop:" + r.keyPrefix() }
-func (r *InterimRecord) GenerateRedisKey() string { return "interim:" + r.keyPrefix() }
+func (r *StartRecord) GenerateRedisKey() string   { return r.keyPrefix() + ":start"  }
+func (r *StopRecord) GenerateRedisKey() string    { return r.keyPrefix() + ":stop"  }
+func (r *InterimRecord) GenerateRedisKey() string { return r.keyPrefix() + ":interim"}
 
 // ======================= PARSER ===========================
 func ParseRADIUSPacket(packet *radius.Packet, clientIP string) (AccountingEvent, error) {

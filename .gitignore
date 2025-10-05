@@ -3,3 +3,4 @@
 radius_accounting.log
 coverage.out
 coverage.html
+bin/*
