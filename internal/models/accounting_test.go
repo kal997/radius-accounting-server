@@ -115,7 +115,7 @@ func TestParseRADIUSPacket_AllTypes(t *testing.T) {
 			packet.Add(rfc2865.NASIPAddress_Type, ipAttr)
 
 			packet.Add(rfc2866.AcctSessionID_Type, radius.Attribute("session123"))
-			rfc2866.AcctStatusType_Set(packet, tt.statusType)
+			_ = rfc2866.AcctStatusType_Set(packet, tt.statusType)
 
 			event, err := ParseRADIUSPacket(packet, "192.168.1.10")
 
@@ -186,11 +186,11 @@ func TestGenerateRedisKey(t *testing.T) {
 
 func TestParseRADIUSPacket_Start(t *testing.T) {
 	p := radius.New(radius.CodeAccountingRequest, []byte("secret"))
-	rfc2866.AcctStatusType_Set(p, rfc2866.AcctStatusType_Value_Start)
-	rfc2865.UserName_SetString(p, "testuser")
-	rfc2865.NASIPAddress_Set(p, net.ParseIP("192.168.1.1"))
-	rfc2865.FramedIPAddress_Set(p, net.ParseIP("10.0.0.100"))
-	rfc2866.AcctSessionID_SetString(p, "sess123")
+	_ = rfc2866.AcctStatusType_Set(p, rfc2866.AcctStatusType_Value_Start)
+	_ = rfc2865.UserName_SetString(p, "testuser")
+	_ = rfc2865.NASIPAddress_Set(p, net.ParseIP("192.168.1.1"))
+	_ = rfc2865.FramedIPAddress_Set(p, net.ParseIP("10.0.0.100"))
+	_ = rfc2866.AcctSessionID_SetString(p, "sess123")
 
 	event, err := ParseRADIUSPacket(p, "127.0.0.1")
 	require.NoError(t, err)
@@ -205,12 +205,12 @@ func TestParseRADIUSPacket_Start(t *testing.T) {
 
 func TestParseRADIUSPacket_Stop(t *testing.T) {
 	p := radius.New(radius.CodeAccountingRequest, []byte("secret"))
-	rfc2866.AcctStatusType_Set(p, rfc2866.AcctStatusType_Value_Stop)
-	rfc2865.UserName_SetString(p, "testuser")
-	rfc2866.AcctSessionID_SetString(p, "sess456")
-	rfc2865.NASIPAddress_Set(p, net.ParseIP("192.168.1.1"))
-	rfc2866.AcctSessionTime_Set(p, 600)
-	rfc2866.AcctTerminateCause_Set(p, rfc2866.AcctTerminateCause_Value_UserRequest)
+	_ = rfc2866.AcctStatusType_Set(p, rfc2866.AcctStatusType_Value_Stop)
+	_ = rfc2865.UserName_SetString(p, "testuser")
+	_ = rfc2866.AcctSessionID_SetString(p, "sess456")
+	_ = rfc2865.NASIPAddress_Set(p, net.ParseIP("192.168.1.1"))
+	_ = rfc2866.AcctSessionTime_Set(p, 600)
+	_ = rfc2866.AcctTerminateCause_Set(p, rfc2866.AcctTerminateCause_Value_UserRequest)
 
 	event, err := ParseRADIUSPacket(p, "127.0.0.1")
 	require.NoError(t, err)
@@ -225,13 +225,13 @@ func TestParseRADIUSPacket_Stop(t *testing.T) {
 
 func TestParseRADIUSPacket_Interim(t *testing.T) {
 	p := radius.New(radius.CodeAccountingRequest, []byte("secret"))
-	rfc2866.AcctStatusType_Set(p, rfc2866.AcctStatusType_Value_InterimUpdate)
-	rfc2865.UserName_SetString(p, "testuser")
-	rfc2866.AcctSessionID_SetString(p, "sess789")
-	rfc2865.NASIPAddress_Set(p, net.ParseIP("192.168.1.1"))
-	rfc2866.AcctSessionTime_Set(p, 900)
-	rfc2866.AcctInputOctets_Set(p, 111)
-	rfc2866.AcctOutputOctets_Set(p, 222)
+	_ = rfc2866.AcctStatusType_Set(p, rfc2866.AcctStatusType_Value_InterimUpdate)
+	_ = rfc2865.UserName_SetString(p, "testuser")
+	_ = rfc2866.AcctSessionID_SetString(p, "sess789")
+	_ = rfc2865.NASIPAddress_Set(p, net.ParseIP("192.168.1.1"))
+	_ = rfc2866.AcctSessionTime_Set(p, 900)
+	_ = rfc2866.AcctInputOctets_Set(p, 111)
+	_ = rfc2866.AcctOutputOctets_Set(p, 222)
 
 	event, err := ParseRADIUSPacket(p, "127.0.0.1")
 	require.NoError(t, err)
@@ -252,7 +252,7 @@ func TestParseRADIUSPacket_InvalidCases(t *testing.T) {
 
 	// unsupported status
 	p := radius.New(radius.CodeAccountingRequest, []byte("secret"))
-	rfc2866.AcctStatusType_Set(p, 99)
+	_ = rfc2866.AcctStatusType_Set(p, 99)
 	event, err = ParseRADIUSPacket(p, "1.1.1.1")
 	assert.ErrorContains(t, err, "unsupported accounting status type: 99")
 	assert.Nil(t, event)

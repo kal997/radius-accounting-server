@@ -24,21 +24,21 @@ func TestNewRedisStorage_Success(t *testing.T) {
 	defer mr.Close()
 
 	// Set environment variables for config
-	os.Setenv("RADIUS_SHARED_SECRET", "testsecret123")
+	_ = os.Setenv("RADIUS_SHARED_SECRET", "testsecret123")
 	host, port, err := net.SplitHostPort(mr.Addr())
 	require.NoError(t, err)
 
-	os.Setenv("REDIS_HOST", host)
-	os.Setenv("REDIS_PORT", port)
-	os.Setenv("RECORD_TTL_HOURS", "24")
-	os.Setenv("LOG_LEVEL", "info")
-	os.Setenv("LOG_FILE", "/tmp/test.log")
+	_ = os.Setenv("REDIS_HOST", host)
+	_ = os.Setenv("REDIS_PORT", port)
+	_ = os.Setenv("RECORD_TTL_HOURS", "24")
+	_ = os.Setenv("LOG_LEVEL", "info")
+	_ = os.Setenv("LOG_FILE", "/tmp/test.log")
 	defer func() {
-		os.Unsetenv("RADIUS_SHARED_SECRET")
-		os.Unsetenv("REDIS_HOST")
-		os.Unsetenv("RECORD_TTL_HOURS")
-		os.Unsetenv("LOG_LEVEL")
-		os.Unsetenv("LOG_FILE")
+		_ = os.Unsetenv("RADIUS_SHARED_SECRET")
+		_ = os.Unsetenv("REDIS_HOST")
+		_ = os.Unsetenv("RECORD_TTL_HOURS")
+		_ = os.Unsetenv("LOG_LEVEL")
+		_ = os.Unsetenv("LOG_FILE")
 	}()
 	cfg, err := config.LoadFromEnv()
 	require.NoError(t, err)
@@ -46,7 +46,10 @@ func TestNewRedisStorage_Success(t *testing.T) {
 	storage, err := NewRedisStorage(cfg)
 	require.NoError(t, err)
 	require.NotNil(t, storage)
-	defer storage.Close()
+	defer func() {
+
+		_ = storage.Close()
+	}()
 
 	// Verify connection works
 	ctx := context.Background()
@@ -57,17 +60,17 @@ func TestNewRedisStorage_Success(t *testing.T) {
 // Test NewRedisStorage with connection failure
 func TestNewRedisStorage_ConnectionFailure(t *testing.T) {
 	// Set environment variables with invalid Redis host
-	os.Setenv("RADIUS_SHARED_SECRET", "testsecret123")
-	os.Setenv("REDIS_HOST", "invalid-host-that-does-not-exist")
-	os.Setenv("RECORD_TTL_HOURS", "24")
-	os.Setenv("LOG_LEVEL", "info")
-	os.Setenv("LOG_FILE", "/tmp/test.log")
+	_ = os.Setenv("RADIUS_SHARED_SECRET", "testsecret123")
+	_ = os.Setenv("REDIS_HOST", "invalid-host-that-does-not-exist")
+	_ = os.Setenv("RECORD_TTL_HOURS", "24")
+	_ = os.Setenv("LOG_LEVEL", "info")
+	_ = os.Setenv("LOG_FILE", "/tmp/test.log")
 	defer func() {
-		os.Unsetenv("RADIUS_SHARED_SECRET")
-		os.Unsetenv("REDIS_HOST")
-		os.Unsetenv("RECORD_TTL_HOURS")
-		os.Unsetenv("LOG_LEVEL")
-		os.Unsetenv("LOG_FILE")
+		_ = os.Unsetenv("RADIUS_SHARED_SECRET")
+		_ = os.Unsetenv("REDIS_HOST")
+		_ = os.Unsetenv("RECORD_TTL_HOURS")
+		_ = os.Unsetenv("LOG_LEVEL")
+		_ = os.Unsetenv("LOG_FILE")
 	}()
 
 	cfg, err := config.LoadFromEnv()
@@ -90,7 +93,7 @@ func newTestStorage(tb testing.TB, ttl time.Duration) (*RedisStorage, *miniredis
 	}
 
 	cleanup := func() {
-		storage.Close()
+		_ = storage.Close()
 		mr.Close()
 	}
 	return storage, mr, cleanup
@@ -234,22 +237,22 @@ func TestRedisStorage_FullIntegration(t *testing.T) {
 	defer mr.Close()
 
 	// Set up environment for config
-	os.Setenv("RADIUS_SHARED_SECRET", "integrationtest")
+	_ = os.Setenv("RADIUS_SHARED_SECRET", "integrationtest")
 	host, port, err := net.SplitHostPort(mr.Addr())
 	require.NoError(t, err)
 
-	os.Setenv("REDIS_HOST", host)
-	os.Setenv("REDIS_PORT", port)
+	_ = os.Setenv("REDIS_HOST", host)
+	_ = os.Setenv("REDIS_PORT", port)
 
-	os.Setenv("RECORD_TTL_HOURS", "1")
-	os.Setenv("LOG_LEVEL", "debug")
-	os.Setenv("LOG_FILE", "/tmp/integration.log")
+	_ = os.Setenv("RECORD_TTL_HOURS", "1")
+	_ = os.Setenv("LOG_LEVEL", "debug")
+	_ = os.Setenv("LOG_FILE", "/tmp/integration.log")
 	defer func() {
-		os.Unsetenv("RADIUS_SHARED_SECRET")
-		os.Unsetenv("REDIS_HOST")
-		os.Unsetenv("RECORD_TTL_HOURS")
-		os.Unsetenv("LOG_LEVEL")
-		os.Unsetenv("LOG_FILE")
+		_ = os.Unsetenv("RADIUS_SHARED_SECRET")
+		_ = os.Unsetenv("REDIS_HOST")
+		_ = os.Unsetenv("RECORD_TTL_HOURS")
+		_ = os.Unsetenv("LOG_LEVEL")
+		_ = os.Unsetenv("LOG_FILE")
 	}()
 
 	// Create config and storage using actual constructor
@@ -259,8 +262,9 @@ func TestRedisStorage_FullIntegration(t *testing.T) {
 	storage, err := NewRedisStorage(cfg)
 	require.NoError(t, err)
 	require.NotNil(t, storage)
-	defer storage.Close()
-
+	defer func() {
+		_ = storage.Close()
+	}()
 	// Test full workflow
 	ctx := context.Background()
 

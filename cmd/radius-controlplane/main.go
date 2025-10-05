@@ -42,7 +42,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize storage: %v", err)
 	}
-	defer store.Close()
+
+	defer func() {
+		if err := store.Close(); err != nil {
+			log.Printf("failed to close store: %v", err)
+		}
+	}()
 
 	// Test storage connection
 	if err := store.HealthCheck(context.Background()); err != nil {

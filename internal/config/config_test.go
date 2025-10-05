@@ -15,11 +15,11 @@ func TestLoadFromEnv_ValidConfig(t *testing.T) {
 	defer clearEnv()
 
 	// Set valid environment variables
-	os.Setenv("RADIUS_SHARED_SECRET", "secretkey123")
-	os.Setenv("REDIS_HOST", "localhost")
-	os.Setenv("RECORD_TTL_HOURS", "24")
-	os.Setenv("LOG_LEVEL", "info")
-	os.Setenv("LOG_FILE", "/var/log/test.log")
+	_ = os.Setenv("RADIUS_SHARED_SECRET", "secretkey123")
+	_ = os.Setenv("REDIS_HOST", "localhost")
+	_ = os.Setenv("RECORD_TTL_HOURS", "24")
+	_ = os.Setenv("LOG_LEVEL", "info")
+	_ = os.Setenv("LOG_FILE", "/var/log/test.log")
 
 	cfg, err := LoadFromEnv()
 
@@ -38,12 +38,12 @@ func TestLoadFromEnv_ValidConfig_test_setup(t *testing.T) {
 	defer clearEnv()
 
 	// Set valid environment variables
-	os.Setenv("RADIUS_SHARED_SECRET", "secretkey123")
-	os.Setenv("REDIS_HOST", "localhost")
-	os.Setenv("RECORD_TTL_HOURS", "24")
-	os.Setenv("LOG_LEVEL", "info")
-	os.Setenv("REDIS_PORT", "1111")
-	os.Setenv("LOG_FILE", "/var/log/test.log")
+	_ = os.Setenv("RADIUS_SHARED_SECRET", "secretkey123")
+	_ = os.Setenv("REDIS_HOST", "localhost")
+	_ = os.Setenv("RECORD_TTL_HOURS", "24")
+	_ = os.Setenv("LOG_LEVEL", "info")
+	_ = os.Setenv("REDIS_PORT", "1111")
+	_ = os.Setenv("LOG_FILE", "/var/log/test.log")
 
 	cfg, err := LoadFromEnv()
 
@@ -139,7 +139,7 @@ func TestLoadFromEnv_MissingRequired(t *testing.T) {
 			defer clearEnv()
 
 			for k, v := range tt.envVars {
-				os.Setenv(k, v)
+				_ = os.Setenv(k, v)
 			}
 
 			cfg, err := LoadFromEnv()
@@ -282,11 +282,11 @@ func TestConfig_GetterMethods(t *testing.T) {
 	defer clearEnv()
 
 	// Set up valid config
-	os.Setenv("RADIUS_SHARED_SECRET", "secretkey123")
-	os.Setenv("REDIS_HOST", "redis-server")
-	os.Setenv("RECORD_TTL_HOURS", "48")
-	os.Setenv("LOG_LEVEL", "debug")
-	os.Setenv("LOG_FILE", "/var/log/radius.log")
+	_ = os.Setenv("RADIUS_SHARED_SECRET", "secretkey123")
+	_ = os.Setenv("REDIS_HOST", "redis-server")
+	_ = os.Setenv("RECORD_TTL_HOURS", "48")
+	_ = os.Setenv("LOG_LEVEL", "debug")
+	_ = os.Setenv("LOG_FILE", "/var/log/radius.log")
 
 	cfg, err := LoadFromEnv()
 	require.NoError(t, err)
@@ -391,6 +391,6 @@ func clearEnv() {
 		"LOG_LEVEL", "LOG_FILE", "REDIS_PORT",
 	}
 	for _, env := range envVars {
-		os.Unsetenv(env)
+		_ = os.Unsetenv(env)
 	}
 }
