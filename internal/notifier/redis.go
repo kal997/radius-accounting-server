@@ -104,7 +104,7 @@ func (rn *RedisNotifier) parseMessage(msg *redis.Message) *StorageEvent {
 	}
 
 	// Extract key from keyspace notification
-	// Channel format: __keyspace@0__:radius:acct:user:session:timestamp
+	// Channel format: __keyspace@0__:radius:acct:user:session:timestamp:AccRecordType
 	// Payload: operation (set, expire, del, etc.)
 
 	if !strings.HasPrefix(msg.Channel, "__keyspace@0__:") {

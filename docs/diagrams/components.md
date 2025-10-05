@@ -33,7 +33,7 @@ package "redis" {
 
 note right of [Storage Interface]
   Database-agnostic storage
-  - Store(ctx, record) error
+  - Store(ctx, event) error
   - HealthCheck(ctx) error
   - Close() error
 end note
@@ -59,3 +59,5 @@ note right of [radius-controlplane]
 end note
 
 @enduml
+```
+This component diagram reflects the current (v2) implementation of the RADIUS accounting system. The `radius-controlplane` service parses incoming packets into strongly typed `AccountingEvent` objects and stores them via the `Storage` interface. Note that the `Store` method now accepts an `event` rather than a (v1)`record` and that keys generated in Redis are postfixed with `start:`, `stop:` or `interim:` depending on the accounting event type.
