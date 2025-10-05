@@ -39,7 +39,11 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize notifier: %v", err)
 	}
-	defer redis.Close()
+	defer func() {
+		if err := redis.Close(); err != nil {
+			log.Printf("failed to close redis: %v", err)
+		}
+	}()
 
 	// Test notifier connection
 	if err := redis.HealthCheck(context.Background()); err != nil {
@@ -51,7 +55,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to initialize logger: %v", err)
 	}
-	defer fileLogger.Close()
+	defer func() {
+
+		if err := fileLogger.Close(); err != nil {
+			log.Printf("failed to close file logger: %v", err)
+		}
+	}()
 
 	log.Printf("Starting radius-controlplane-logger")
 	log.Printf("Connected to Redis at %s", cfg.GetRedisAddr())

@@ -63,7 +63,7 @@ func TestNewRedisNotifier(t *testing.T) {
 				require.NoError(t, err)
 				require.NotNil(t, notifier)
 				assert.NotNil(t, notifier.client)
-				notifier.Close()
+				_ = notifier.Close()
 			}
 		})
 	}
@@ -87,7 +87,7 @@ func TestRedisNotifier_Subscribe(t *testing.T) {
 				notifier, err := NewRedisNotifier(mr.Addr())
 				require.NoError(t, err)
 				return notifier, func() {
-					notifier.Close()
+					_ = notifier.Close()
 					mr.Close()
 				}
 			},
@@ -105,7 +105,7 @@ func TestRedisNotifier_Subscribe(t *testing.T) {
 				notifier, err := NewRedisNotifier(mr.Addr())
 				require.NoError(t, err)
 				return notifier, func() {
-					notifier.Close()
+					_ = notifier.Close()
 					mr.Close()
 				}
 			},
@@ -123,7 +123,7 @@ func TestRedisNotifier_Subscribe(t *testing.T) {
 				notifier, err := NewRedisNotifier(mr.Addr())
 				require.NoError(t, err)
 				return notifier, func() {
-					notifier.Close()
+					_ = notifier.Close()
 					mr.Close()
 				}
 			},
@@ -139,7 +139,7 @@ func TestRedisNotifier_Subscribe(t *testing.T) {
 				notifier, err := NewRedisNotifier(mr.Addr())
 				require.NoError(t, err)
 				return notifier, func() {
-					notifier.Close()
+					_ = notifier.Close()
 					mr.Close()
 				}
 			},
@@ -189,7 +189,10 @@ func TestRedisNotifier_Subscribe_ContextCancellation(t *testing.T) {
 
 	notifier, err := NewRedisNotifier(mr.Addr())
 	require.NoError(t, err)
-	defer notifier.Close()
+	defer func() {
+
+		_ = notifier.Close()
+	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	eventChan, err := notifier.Subscribe(ctx, []string{"test:*"})
@@ -331,7 +334,7 @@ func TestRedisNotifier_Unsubscribe(t *testing.T) {
 				require.NoError(t, err)
 
 				return notifier, func() {
-					notifier.Close()
+					_ = notifier.Close()
 					mr.Close()
 				}
 			},
@@ -346,7 +349,7 @@ func TestRedisNotifier_Unsubscribe(t *testing.T) {
 				notifier, err := NewRedisNotifier(mr.Addr())
 				require.NoError(t, err)
 				return notifier, func() {
-					notifier.Close()
+					_ = notifier.Close()
 					mr.Close()
 				}
 			},
@@ -368,7 +371,7 @@ func TestRedisNotifier_Unsubscribe(t *testing.T) {
 				require.NoError(t, err)
 
 				return notifier, func() {
-					notifier.Close()
+					_ = notifier.Close()
 					mr.Close()
 				}
 			},
@@ -388,7 +391,7 @@ func TestRedisNotifier_Unsubscribe(t *testing.T) {
 				require.NoError(t, err)
 
 				return notifier, func() {
-					notifier.Close()
+					_ = notifier.Close()
 					mr.Close()
 				}
 			},
@@ -430,7 +433,7 @@ func TestRedisNotifier_HealthCheck(t *testing.T) {
 				notifier, err := NewRedisNotifier(mr.Addr())
 				require.NoError(t, err)
 				return notifier, func() {
-					notifier.Close()
+					_ = notifier.Close()
 					mr.Close()
 				}
 			},
@@ -448,7 +451,7 @@ func TestRedisNotifier_HealthCheck(t *testing.T) {
 				mr.Close()
 
 				return notifier, func() {
-					notifier.Close()
+					_ = notifier.Close()
 				}
 			},
 			wantErr: true,
@@ -467,7 +470,10 @@ func TestRedisNotifier_HealthCheck(t *testing.T) {
 							return
 						}
 						// Accept but don't respond - simulate hanging connection
-						defer conn.Close()
+						defer func() {
+
+							_ = conn.Close()
+						}()
 						time.Sleep(1 * time.Second)
 					}
 				}()
@@ -481,8 +487,8 @@ func TestRedisNotifier_HealthCheck(t *testing.T) {
 				}
 
 				return notifier, func() {
-					notifier.Close()
-					listener.Close()
+					_ = notifier.Close()
+					_ = listener.Close()
 				}
 			},
 			wantErr: true,
@@ -556,7 +562,7 @@ func TestRedisNotifier_Close(t *testing.T) {
 				require.NoError(t, err)
 
 				// Close once
-				notifier.Close()
+				_ = notifier.Close()
 
 				return notifier, func() { mr.Close() }
 			},
@@ -575,7 +581,7 @@ func TestRedisNotifier_Close(t *testing.T) {
 				require.NoError(t, err)
 
 				// Close pubsub first to simulate error scenario
-				notifier.pubsub.Close()
+				_ = notifier.pubsub.Close()
 
 				return notifier, func() { mr.Close() }
 			},
@@ -607,7 +613,10 @@ func TestRedisNotifier_MessageProcessing(t *testing.T) {
 
 	notifier, err := NewRedisNotifier(mr.Addr())
 	require.NoError(t, err)
-	defer notifier.Close()
+	defer func() {
+
+		_ = notifier.Close()
+	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -635,11 +644,16 @@ func TestRedisNotifier_MessageProcessing(t *testing.T) {
 func TestRedisNotifier_ConcurrentOperations(t *testing.T) {
 	mr, err := miniredis.Run()
 	require.NoError(t, err)
-	defer mr.Close()
+	defer func() {
+		mr.Close()
+	}()
 
 	notifier, err := NewRedisNotifier(mr.Addr())
 	require.NoError(t, err)
-	defer notifier.Close()
+	defer func() {
+
+		_ = notifier.Close()
+	}()
 
 	ctx := context.Background()
 

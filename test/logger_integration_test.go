@@ -15,7 +15,10 @@ import (
 
 func TestFileLogger_Integration(t *testing.T) {
 	tmpFile := "/tmp/test_logger.log"
-	defer os.Remove(tmpFile)
+	defer func() {
+
+		_ = os.Remove(tmpFile)
+	}()
 
 	logger, err := logger.NewFileLogger(tmpFile)
 	require.NoError(t, err)

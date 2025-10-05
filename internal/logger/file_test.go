@@ -27,7 +27,7 @@ func TestNewFileLogger(t *testing.T) {
 			logfile: "/tmp/test_new_logger.log",
 			setup:   func(path string) {},
 			cleanup: func(path string) {
-				os.Remove(path)
+				_ = os.Remove(path)
 			},
 			wantErr: false,
 		},
@@ -71,7 +71,7 @@ func TestNewFileLogger(t *testing.T) {
 				assert.False(t, logger.closed)
 
 				// Clean up
-				logger.Close()
+				_ = logger.Close()
 			}
 		})
 	}
@@ -92,8 +92,8 @@ func TestFileLogger_Log(t *testing.T) {
 				tmpFile := "/tmp/test_log_write.log"
 				logger, _ := NewFileLogger(tmpFile)
 				cleanup := func() {
-					logger.Close()
-					os.Remove(tmpFile)
+					_ = logger.Close()
+					_ = os.Remove(tmpFile)
 				}
 				return logger, cleanup
 			},
@@ -123,9 +123,9 @@ func TestFileLogger_Log(t *testing.T) {
 			setupLogger: func() (*FileLogger, func()) {
 				tmpFile := "/tmp/test_log_closed.log"
 				logger, _ := NewFileLogger(tmpFile)
-				logger.Close() // Close immediately
+				_ = logger.Close() // Close immediately
 				cleanup := func() {
-					os.Remove(tmpFile)
+					_ = os.Remove(tmpFile)
 				}
 				return logger, cleanup
 			},
@@ -139,8 +139,8 @@ func TestFileLogger_Log(t *testing.T) {
 				tmpFile := "/tmp/test_concurrent.log"
 				logger, _ := NewFileLogger(tmpFile)
 				cleanup := func() {
-					logger.Close()
-					os.Remove(tmpFile)
+					_ = logger.Close()
+					_ = os.Remove(tmpFile)
 				}
 				return logger, cleanup
 			},
@@ -179,8 +179,8 @@ func TestFileLogger_Log(t *testing.T) {
 				tmpFile := "/tmp/test_empty_message.log"
 				logger, _ := NewFileLogger(tmpFile)
 				cleanup := func() {
-					logger.Close()
-					os.Remove(tmpFile)
+					_ = logger.Close()
+					_ = os.Remove(tmpFile)
 				}
 				return logger, cleanup
 			},
@@ -199,8 +199,8 @@ func TestFileLogger_Log(t *testing.T) {
 				tmpFile := "/tmp/test_long_message.log"
 				logger, _ := NewFileLogger(tmpFile)
 				cleanup := func() {
-					logger.Close()
-					os.Remove(tmpFile)
+					_ = logger.Close()
+					_ = os.Remove(tmpFile)
 				}
 				return logger, cleanup
 			},
@@ -248,7 +248,7 @@ func TestFileLogger_Close(t *testing.T) {
 				tmpFile := "/tmp/test_close.log"
 				logger, _ := NewFileLogger(tmpFile)
 				cleanup := func() {
-					os.Remove(tmpFile)
+					_ = os.Remove(tmpFile)
 				}
 				return logger, cleanup
 			},
@@ -259,9 +259,9 @@ func TestFileLogger_Close(t *testing.T) {
 			setupLogger: func() (*FileLogger, func()) {
 				tmpFile := "/tmp/test_double_close.log"
 				logger, _ := NewFileLogger(tmpFile)
-				logger.Close() // First close
+				_ = logger.Close() // First close
 				cleanup := func() {
-					os.Remove(tmpFile)
+					_ = os.Remove(tmpFile)
 				}
 				return logger, cleanup
 			},
@@ -288,7 +288,10 @@ func TestFileLogger_Close(t *testing.T) {
 
 func TestFileLogger_CloseMultipleTimes(t *testing.T) {
 	tmpFile := "/tmp/test_multiple_close.log"
-	defer os.Remove(tmpFile)
+	defer func() {
+		_ = os.Remove(tmpFile)
+
+	}()
 
 	logger, err := NewFileLogger(tmpFile)
 	require.NoError(t, err)
@@ -313,13 +316,17 @@ func TestFileLogger_WriteError(t *testing.T) {
 	// This test simulates a write error by closing the file descriptor
 	// before attempting to write
 	tmpFile := "/tmp/test_write_error.log"
-	defer os.Remove(tmpFile)
+
+	defer func() {
+		_ = os.Remove(tmpFile)
+
+	}()
 
 	logger, err := NewFileLogger(tmpFile)
 	require.NoError(t, err)
 
 	// Manually close the file to simulate write error
-	logger.file.Close()
+	_ = logger.file.Close()
 
 	// Attempt to log should fail
 	err = logger.Log(context.Background(), "this should fail")
@@ -330,8 +337,10 @@ func TestFileLogger_WriteError(t *testing.T) {
 func TestFileLogger_SyncError(t *testing.T) {
 	// Create a mock file that fails on Sync
 	tmpFile := "/tmp/test_sync_error.log"
-	defer os.Remove(tmpFile)
+	defer func() {
+		_ = os.Remove(tmpFile)
 
+	}()
 	logger, err := NewFileLogger(tmpFile)
 	require.NoError(t, err)
 
@@ -341,22 +350,24 @@ func TestFileLogger_SyncError(t *testing.T) {
 	// Create a pipe to simulate a file that can't be synced
 	r, w, err := os.Pipe()
 	require.NoError(t, err)
-	defer r.Close()
+	defer func() {
+		_ = r.Close()
+	}()
 
 	// Replace the file with the write end of the pipe
 	logger.file = w
 
 	// Write should succeed but sync will fail on a pipe
-	err = logger.Log(context.Background(), "test message")
+	_ = logger.Log(context.Background(), "test message")
 	// Note: On some systems, Sync on a pipe might not fail,
 	// so we just ensure no panic occurs
 
 	// Close the pipe
-	w.Close()
+	_ = w.Close()
 
 	// Restore original file for cleanup
 	logger.file = origFile
-	logger.Close()
+	_ = logger.Close()
 }
 
 // MockFile is a mock implementation for testing write failures
@@ -383,8 +394,10 @@ func (m *MockFile) Sync() error {
 func TestFileLogger_ConcurrentCloseAndLog(t *testing.T) {
 	// Test race condition between Close and Log
 	tmpFile := "/tmp/test_concurrent_close.log"
-	defer os.Remove(tmpFile)
+	defer func() {
+		_ = os.Remove(tmpFile)
 
+	}()
 	logger, err := NewFileLogger(tmpFile)
 	require.NoError(t, err)
 
@@ -395,7 +408,7 @@ func TestFileLogger_ConcurrentCloseAndLog(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			logger.Log(context.Background(), "concurrent log")
+			_ = logger.Log(context.Background(), "concurrent log")
 		}()
 	}
 
@@ -404,7 +417,7 @@ func TestFileLogger_ConcurrentCloseAndLog(t *testing.T) {
 	go func() {
 		defer wg.Done()
 		time.Sleep(1 * time.Millisecond) // Small delay
-		logger.Close()
+		_ = logger.Close()
 	}()
 
 	// More logging attempts after close
@@ -413,7 +426,7 @@ func TestFileLogger_ConcurrentCloseAndLog(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			time.Sleep(2 * time.Millisecond) // Ensure these run after close
-			logger.Log(context.Background(), "after close")
+			_ = logger.Log(context.Background(), "after close")
 		}()
 	}
 
