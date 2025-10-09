@@ -1,9 +1,8 @@
 # RADIUS Accounting System
 
-A production-ready RADIUS accounting server implementation in Go that processes RADIUS accounting packets, stores them in Redis, and provides real-time event notifications through a subscriber service.
+A RADIUS accounting server implementation in Go that processes RADIUS accounting packets, stores them in Redis, and provides real-time event notifications through a subscriber service.
 
 **Version**: 2.0.0  
-**Status**: Production Ready  
 **Go Version**: 1.22+  
 
 ## Purpose
@@ -24,7 +23,6 @@ Monitor and collect mirrored RADIUS accounting traffic for analysis. This system
 - Database-agnostic storage interface
 - Generic event notification system
 - Graceful shutdown with signal handling
-- Health check endpoints
 - Thread-safe operations
 - Docker containerization
 - Docker Compose orchestration
@@ -230,29 +228,6 @@ make ci
 └── docker-compose.integration.yml  # Test orchestration
 ```
 
-## Data Model
-
-### Accounting Record
-```json
-{
-  "username": "testuser",
-  "nas_ip_address": "192.168.1.1",
-  "nas_port": 0,
-  "acct_status_type": 1,
-  "acct_session_id": "session12345",
-  "framed_ip_address": "10.0.0.100",
-  "calling_station_id": "123-456-7890",
-  "called_station_id": "987-654-3210",
-  "timestamp": "2024-01-15T10:30:45.123456789Z",
-  "client_ip": "192.168.1.100",
-  "packet_type": "Accounting-Request"
-}
-```
-
-### Redis Key Format
-```
-radius:acct:{username}:{acct_session_id}:{timestamp}
-```
 
 ## Configuration
 
@@ -286,8 +261,11 @@ The system uses interface-based design for easy extensibility:
 
 ```go
 type Storage interface {
-    Store(ctx context.Context, record *models.AccountingRecord) error
+    // Store saves an accounting event.
+    Store(ctx context.Context, event AccountingEvent) error
+    // HealthCheck verifies storage connectivity.
     HealthCheck(ctx context.Context) error
+    // Close closes the storage connection.
     Close() error
 }
 ```
@@ -311,7 +289,6 @@ type Notifier interface {
 2. **Graceful Degradation**: System remains operational if non-critical components fail
 3. **Interface Segregation**: Clean interfaces for storage and notifications
 4. **Context Propagation**: Proper cancellation and timeout handling
-5. **Defensive Programming**: Comprehensive error handling and validation
 
 ## Performance Characteristics
 
@@ -383,7 +360,7 @@ CI/CD:
 
 ## Version History
 
-- **2.0.0** (Current) - Makefile automation, improved test coverage, production optimizations
+- **2.0.0** (Current) - Makefile automation, improved test coverage, optimizations
 - **1.0.0** - Initial release with core RADIUS accounting functionality
 
 ## References
