@@ -92,7 +92,6 @@ The system consists of four main containerized services that work together to pr
 - **Interface Segregation**: Small, focused interfaces (Storage, Notifier, Logger).
 - **Dependency Injection**: Interfaces injected into components.
 - **Repository Pattern**: Storage interface abstracts data access.
-- **Publisher‑Subscriber**: Redis keyspace notifications for event distribution.
 - **Graceful Degradation**: System continues operation despite storage failures.
 
 ## Interface Design
@@ -214,7 +213,7 @@ RADIUS accounting supports multiple record types.  Instead of a single `Accounti
 - **StopRecord** extends `BaseAccountingRecord` with `SessionTime`, `TerminateCause`, `InputOctets`, and `OutputOctets`.
 - **InterimRecord** extends `BaseAccountingRecord` with `SessionTime`, `InputOctets`, and `OutputOctets`.
 
-Each concrete type implements `Validate()`, `GetType()` and `GenerateRedisKey()`.  The `GenerateRedisKey()` method prepends a prefix based on the event type to a key composed of the username, session ID and timestamp.  For example:
+Each concrete type implements `Validate()`, `GetType()` and `GenerateRedisKey()`.  The `GenerateRedisKey()` method prepends a postfix based on the event type to a key composed of the username, session ID and timestamp.  For example:
 
 - `StartRecord` keys look like `radius:acct:{username} {acct_session_id}:{timestamp}:start`.
 - `StopRecord` keys look like `radius:acct:{username} {acct_session_id}:{timestamp}:stop`.
